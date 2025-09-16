@@ -147,10 +147,10 @@ export default function AboutPage() {
               </span>
             </div>
 
-            <div className="flex justify-center items-center mb-8">
+            <div className="flex flex-wrap justify-center items-center mb-8 text-center gap-x-6 gap-y-4">
               <SplitText
-                text="Transform "
-                className="text-5xl md:text-7xl font-bold text-white text-balance"
+                text="Transform"
+                className="text-4xl sm:text-5xl md:text-7xl font-bold text-white text-balance"
                 delay={0.05}
                 duration={0.8}
                 ease="power3.out"
@@ -162,10 +162,9 @@ export default function AboutPage() {
                 textAlign="center"
                 onLetterAnimationComplete={handleAnimationComplete}
               />
-              <div className="w-6"></div>
               <SplitText
                 text="Education"
-                className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-accent via-purple-400 to-pink-400 bg-clip-text text-transparent text-balance"
+                className="text-4xl sm:text-5xl md:text-7xl font-bold bg-gradient-to-r from-accent via-purple-400 to-pink-400 bg-clip-text text-transparent text-balance"
                 delay={0.05}
                 duration={0.8}
                 ease="power3.out"
