@@ -6,6 +6,9 @@ import { Navbar } from "@/components/Navbar";
 import { motion, useMotionValue, useTransform, animate, useInView } from "framer-motion";
 import SplitText from "@/components/ui-block/SplitText";
 import DarkVeil from "@/components/ui-block/DarkVeil";
+import CommentSection from "@/components/CommentSection";
+
+
 import {
   Card,
   CardContent,
@@ -769,7 +772,7 @@ export default function AboutPage() {
                     return (
                       <ItemWrapper
                         key={stat.id}
-                        href={stat.href || ""}
+                        href={stat.href || null}
                         onMouseEnter={() => setHoveredRing(stat.id)}
                         onMouseLeave={() => setHoveredRing(null)}
                         className={`block p-5 border rounded-2xl transition-all duration-500 ${
@@ -898,6 +901,24 @@ export default function AboutPage() {
             </div>
           </div>
         </section>
+
+
+        {/* Community Feedback Section */}
+<section className="mx-auto mt-20 max-w-4xl px-6 py-12">
+  <div className="mb-8 text-center">
+    <h2 className="text-3xl font-bold text-white">
+      Community Feedback
+    </h2>
+
+    <p className="mt-3 text-slate-400">
+      Share your thoughts, feedback, and ideas about Learnova.
+    </p>
+  </div>
+
+  <div className="rounded-[2rem] border border-slate-800 bg-slate-900/60 p-6 shadow-2xl">
+    <CommentSection noticeId="homepage" />
+  </div>
+</section>
 
         {/* CTA Section */}
         <section id="get-started" className="py-20 px-4 sm:px-6 lg:px-8">
