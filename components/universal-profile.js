@@ -278,60 +278,45 @@ export default function UniversalProfile() {
 
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error(
-        "Please upload a valid image file."
-      );
-      return;
+   
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+  if (!allowedTypes.includes(file.type)) {
+    toast.error("Invalid file type. Only JPG, PNG, WEBP are allowed.");
+    e.target.value = "";
+    return;
+  }
+
+  const MAX_SIZE = 2 * 1024 * 1024;
+
+  if (file.size > MAX_SIZE) {
+    toast.error("File size exceeds 2MB. Please select a smaller file.");
+    e.target.value = "";
+    return;
+  }
+
+  const loadingToast = toast.loading("Uploading profile picture...");
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const res = await fetch("/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error("Upload failed");
     }
 
-    const MAX_SIZE = 5 * 1024 * 1024;
-
-    if (file.size > MAX_SIZE) {
-      toast.error(
-        "File size exceeds 5MB limit."
-      );
-
-      e.target.value = "";
-
-      return;
-    }
-
-    if (!modelsLoaded) {
-      toast.error("Face models are still loading. Please wait a moment.");
-      return;
-    }
-
-    const detectToast = toast.loading("Analyzing photo for face verification...");
-    let faceDescriptorString = "";
-    try {
-      const fileUrl = URL.createObjectURL(file);
-      const img = await faceapi.fetchImage(fileUrl);
-      const detection = await faceapi
-        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-
-      URL.revokeObjectURL(fileUrl);
-
-      if (!detection) {
-        toast.error("Could not detect a clear face. Please upload a clear headshot photo.", { id: detectToast });
-        e.target.value = "";
-        return;
-      }
-
-      faceDescriptorString = JSON.stringify(Array.from(detection.descriptor));
-      toast.success("Face successfully verified!", { id: detectToast });
-    } catch (err) {
-      console.error("Face detection error during profile update:", err);
-      toast.error("Error analyzing image file. Please ensure it is a valid face image.", { id: detectToast });
-      e.target.value = "";
-      return;
-    }
-
-    const loadingToast = toast.loading(
-      "Uploading profile picture..."
-    );
+    toast.success("Uploaded!");
+    e.target.value = ""; 
+  } catch (error) {
+    toast.error("Upload failed!");
+  } finally {
+    toast.dismiss(loadingToast);
+  }
+  };  
 
     try {
       const token = await user.getIdToken();
