@@ -13,8 +13,12 @@ export default function BadgeGallery({ unlockedBadges = [] }) {
       </h3>
       <div className="grid grid-cols-3 gap-4">
         {allBadges.map((badge, index) => {
-          const isUnlocked = unlockedBadges.includes(badge.id);
+          const unlockedBadgeSet = useMemo(
+            () => new Set(unlockedBadges),
+            [unlockedBadges]
+          );
 
+          const isUnlocked = unlockedBadgeSet.has(badge.id);
           return (
             <motion.div
               key={badge.id}
