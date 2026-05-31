@@ -33,6 +33,7 @@ import {
 import { Navbar } from "./Navbar";
 import dynamic from "next/dynamic";
 import ChartSkeleton from "@/components/ui/ChartSkeleton";
+import AttendanceInsights from "@/components/AttendanceInsights";
 
 const AttendanceHeatmap = dynamic(
   () => import("./AttendanceHeatmap"),
@@ -627,6 +628,8 @@ const StudentDashboard = () => {
                 </div>
               </div>
             </div>
+
+            <AttendanceInsights records={recentActivity} />
 
             {/* Security Status */}
             <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
