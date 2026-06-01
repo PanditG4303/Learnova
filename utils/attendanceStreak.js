@@ -1,3 +1,12 @@
+function toUTCDay(date) {
+  const d = new Date(date);
+  return Date.UTC(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate()
+  );
+}
+
 export function calculateCurrentStreak(records) {
   if (!records || records.length === 0) return 0;
 
@@ -7,6 +16,14 @@ export function calculateCurrentStreak(records) {
 
   if (sorted[0].status === "absent") return 0;
 
+  const latestDate = new Date(sorted[0].date);
+  const today = new Date();
+  const latestUTCDay = toUTCDay(latestDate);
+  const todayUTCDay = toUTCDay(today);
+  const yesterdayUTCDay = todayUTCDay - 86400000;
+
+  if (latestUTCDay < yesterdayUTCDay) return 0;
+
   let streak = 1;
   let prevDate = new Date(sorted[0].date);
 
@@ -14,13 +31,15 @@ export function calculateCurrentStreak(records) {
     if (sorted[i].status === "absent") break;
 
     const currDate = new Date(sorted[i].date);
-    const diffDays = Math.round(
-      (prevDate - currDate) / (1000 * 60 * 60 * 24)
-    );
+    const diffDays =
+      (toUTCDay(prevDate) - toUTCDay(currDate)) /
+      (1000 * 60 * 60 * 24);
 
     if (diffDays === 1) {
       streak++;
       prevDate = currDate;
+    } else if (diffDays === 0) {
+      continue;
     } else {
       break;
     }
@@ -44,11 +63,15 @@ export function calculateLongestStreak(records) {
   for (let i = 1; i < nonAbsent.length; i++) {
     const prevDate = new Date(nonAbsent[i - 1].date);
     const currDate = new Date(nonAbsent[i].date);
-    const diffDays = Math.round((currDate - prevDate) / (1000 * 60 * 60 * 24));
+    const diffDays =
+      (toUTCDay(currDate) - toUTCDay(prevDate)) /
+      (1000 * 60 * 60 * 24);
 
     if (diffDays === 1) {
       currentStreak++;
       maxStreak = Math.max(maxStreak, currentStreak);
+    } else if (diffDays === 0) {
+      continue;
     } else {
       currentStreak = 1;
     }
