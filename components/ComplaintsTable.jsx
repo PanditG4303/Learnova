@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useAuthContext } from "@/contexts/AuthContext";
 import {
   Search,
   Filter,
@@ -14,6 +15,8 @@ export default function ComplaintsTable({
   complaints = [],
   onRaiseComplaint,
 }) {
+  const { user } = useAuthContext();
+  const isAdmin = user?.role === "admin";
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
@@ -85,12 +88,23 @@ export default function ComplaintsTable({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-transparent outline-none w-full"
+            className="bg-background text-foreground outline-none w-full"
           >
-            <option value="All">All</option>
-            <option value="Pending">Pending</option>
-            <option value="Resolved">Resolved</option>
-            <option value="Not Resolved">Not Resolved</option>
+            <option value="All" className="bg-background text-foreground">
+              All
+            </option>
+
+            <option value="Pending" className="bg-background text-foreground">
+              Pending
+            </option>
+
+            <option value="Resolved" className="bg-background text-foreground">
+              Resolved
+            </option>
+
+            <option value="Not Resolved" className="bg-background text-foreground">
+              Not Resolved
+            </option>
           </select>
         </div>
 
@@ -115,6 +129,7 @@ export default function ComplaintsTable({
                 <th className="px-6 py-4">Priority</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Date</th>
+                {isAdmin && <th>Email</th>}
 
               </tr>
             </thead>
@@ -156,13 +171,12 @@ export default function ComplaintsTable({
 
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold
-                        ${
-                          c.priority === "High"
+                        ${c.priority === "High"
                             ? "bg-red-500/10 text-red-500"
                             : c.priority === "Medium"
-                            ? "bg-yellow-500/10 text-yellow-500"
-                            : "bg-green-500/10 text-green-500"
-                        }`}
+                              ? "bg-yellow-500/10 text-yellow-500"
+                              : "bg-green-500/10 text-green-500"
+                          }`}
                       >
                         {c.priority}
                       </span>
@@ -173,13 +187,12 @@ export default function ComplaintsTable({
 
                       <span
                         className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold
-                        ${
-                          c.status === "Resolved"
+                        ${c.status === "Resolved"
                             ? "bg-green-500/10 text-green-500"
                             : c.status === "Pending"
-                            ? "bg-yellow-500/10 text-yellow-500"
-                            : "bg-red-500/10 text-red-500"
-                        }`}
+                              ? "bg-yellow-500/10 text-yellow-500"
+                              : "bg-red-500/10 text-red-500"
+                          }`}
                       >
 
                         {c.status === "Resolved" ? (
@@ -198,6 +211,12 @@ export default function ComplaintsTable({
                     <td className="px-6 py-5">
                       {c.date}
                     </td>
+
+                    {isAdmin && (
+                      <td className="px-6 py-5">
+                        {c.email}
+                      </td>
+                    )}
 
                   </tr>
                 ))

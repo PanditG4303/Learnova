@@ -38,25 +38,37 @@ function unregisterConnection(connId) {
   }
 }
 
-// ── Shared Notice Listener Bus ─────────────────────────────────────────────────
+// ── Shared Notice Listener Bus (institute-scoped) ──────────────────────────────
 const noticeListeners = new Map();
 
-function addNoticeListener(userId, cb) {
-  if (!noticeListeners.has(userId)) {
-    noticeListeners.set(userId, new Set());
+function addNoticeListener(instituteId, userId, cb) {
+  const instKey = instituteId || "global";
+  if (!noticeListeners.has(instKey)) {
+    noticeListeners.set(instKey, new Map());
   }
-  noticeListeners.get(userId).add(cb);
+  const userListeners = noticeListeners.get(instKey);
+  if (!userListeners.has(userId)) {
+    userListeners.set(userId, new Set());
+  }
+  userListeners.get(userId).add(cb);
 }
 
-function removeNoticeListener(userId, cb) {
-  const cbs = noticeListeners.get(userId);
+function removeNoticeListener(instituteId, userId, cb) {
+  const instKey = instituteId || "global";
+  const userListeners = noticeListeners.get(instKey);
+  if (!userListeners) return;
+  const cbs = userListeners.get(userId);
   if (!cbs) return;
   cbs.delete(cb);
-  if (cbs.size === 0) noticeListeners.delete(userId);
+  if (cbs.size === 0) userListeners.delete(userId);
+  if (userListeners.size === 0) noticeListeners.delete(instKey);
 }
 
 function broadcastNotice(doc) {
-  for (const [, cbs] of noticeListeners) {
+  const instKey = String(doc.instituteId) || "global";
+  const userListeners = noticeListeners.get(instKey);
+  if (!userListeners) return;
+  for (const [, cbs] of userListeners) {
     for (const cb of cbs) cb(doc);
   }
 }
@@ -66,9 +78,11 @@ let sharedStream = null;
 let sharedDb = null;
 let streamReconnectTimer = null;
 let streamReconnectRetryCount = 0;
+let streamGeneration = 0;
 
 async function startChangeStream() {
   stopChangeStream();
+  const gen = ++streamGeneration;
   try {
     sharedDb = await connectDbForSSE();
     const coll = sharedDb.collection("notices");
@@ -77,15 +91,24 @@ async function startChangeStream() {
       const doc = change.fullDocument;
       if (doc) broadcastNotice(doc);
     });
-    sharedStream.on("error", () => scheduleChangeStreamReconnect());
-    sharedStream.on("close", () => scheduleChangeStreamReconnect());
+    sharedStream.on("error", () => {
+      if (streamGeneration !== gen) return;
+      scheduleChangeStreamReconnect();
+    });
+    sharedStream.on("close", () => {
+      if (streamGeneration !== gen) return;
+      scheduleChangeStreamReconnect();
+    });
     streamReconnectRetryCount = 0;
   } catch {
-    scheduleChangeStreamReconnect();
+    if (streamGeneration === gen) {
+      scheduleChangeStreamReconnect();
+    }
   }
 }
 
 function stopChangeStream() {
+  streamGeneration++;
   if (streamReconnectTimer) {
     clearTimeout(streamReconnectTimer);
     streamReconnectTimer = null;
@@ -149,6 +172,7 @@ export async function GET(request) {
     const profile = await getUserProfile(decodedToken.uid);
     const userRole = profile?.role || "student";
     const userId = decodedToken.uid;
+    const instituteId = profile?.instituteId || null;
 
     const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
     const rateLimitResult = await checkRateLimit(`notices_stream_${ip}_${userId}`);
@@ -189,7 +213,7 @@ export async function GET(request) {
             unregisterConnection(connId);
             connId = null;
           }
-          removeNoticeListener(userId, onNotice);
+          removeNoticeListener(instituteId, userId, onNotice);
           if (noticeListeners.size === 0) {
             stopChangeStream();
             stopPolling();
@@ -214,7 +238,10 @@ export async function GET(request) {
 
         try {
           const initialNotices = await noticesCollection
-            .find({ targetAudience: userRole })
+            .find({ 
+              targetAudience: userRole,
+              instituteId: instituteId 
+            })
             .sort({ isPinned: -1, createdAt: -1 })
             .limit(50)
             .toArray();
@@ -234,7 +261,8 @@ export async function GET(request) {
           if (!isConnected) return;
           if (
             doc.targetAudience &&
-            doc.targetAudience.includes(userRole)
+            doc.targetAudience.includes(userRole) &&
+            String(doc.instituteId) === String(instituteId)
           ) {
             sendEvent("new-notice", {
               ...doc,
@@ -243,7 +271,7 @@ export async function GET(request) {
           }
         };
 
-        addNoticeListener(userId, onNotice);
+        addNoticeListener(instituteId, userId, onNotice);
 
         if (!sharedStream) {
           startChangeStream();

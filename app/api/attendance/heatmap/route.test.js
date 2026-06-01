@@ -1,113 +1,161 @@
 import { GET } from "./route";
-import { authenticateRequest } from "@/lib/error-handler";
+import { requireAuth } from "@/lib/rbac";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { getFirestore } from "firebase-admin/firestore";
 
-jest.mock("@/lib/error-handler", () => ({
+vi.mock("@/lib/error-handler", () => ({
   withErrorHandler: (handler) => handler,
-  authenticateRequest: jest.fn(),
 }));
 
-jest.mock("@/lib/rateLimit", () => ({
-  checkRateLimit: jest.fn(),
+vi.mock("@/lib/rbac", () => ({
+  requireAuth: vi.fn(),
 }));
 
-jest.mock("@/lib/firebase-admin", () => ({
-  initFirebaseAdmin: jest.fn(),
+vi.mock("@/lib/rateLimit", () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 9 }),
 }));
 
-const mockCollection = {
-  find: jest.fn().mockReturnThis(),
-  sort: jest.fn().mockReturnThis(),
-  toArray: jest.fn().mockResolvedValue([]),
-};
-
-jest.mock("@/lib/mongodb", () => ({
-  __esModule: true,
-  default: Promise.resolve({
-    db: () => ({
-      collection: () => mockCollection,
-    }),
-  }),
+vi.mock("@/lib/firebase-admin", () => ({
+  initFirebaseAdmin: vi.fn(),
 }));
+
+vi.mock("firebase-admin/firestore", () => ({
+  getFirestore: vi.fn(),
+}));
+
+const createMockDocs = (docs) => ({
+  forEach: (fn) => docs.forEach(fn),
+});
+
+function createMockFirestore() {
+  const mockGet = vi.fn();
+  const mockWhere = vi.fn().mockReturnThis();
+  const mockCollection = vi.fn(() => ({
+    where: mockWhere,
+    get: mockGet,
+  }));
+  getFirestore.mockReturnValue({
+    collection: mockCollection,
+  });
+  return { mockGet, mockWhere, mockCollection };
+}
 
 function mockRequest(url) {
-  return {
-    headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
-    nextUrl: new URL(url, "http://localhost"),
-  };
+  return { url, headers: new Headers([["x-forwarded-for", "127.0.0.1"]]) };
 }
 
 describe("attendance heatmap API route", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    checkRateLimit.mockResolvedValue({ allowed: true, remaining: 9 });
+    vi.clearAllMocks();
   });
 
   test("derives userId from token when no explicit userId provided", async () => {
-    authenticateRequest.mockResolvedValue({ uid: "student-1", role: "student" });
+    requireAuth.mockResolvedValue({ uid: "student-1", role: "student" });
+    const { mockGet } = createMockFirestore();
+    mockGet.mockResolvedValue(createMockDocs([]));
 
     const req = mockRequest("http://localhost/api/attendance/heatmap?month=2026-06");
     const res = await GET(req);
 
     expect(res.status).toBe(200);
-    expect(mockCollection.find).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: "student-1" })
-    );
   });
 
   test("rejects student querying another user", async () => {
-    authenticateRequest.mockResolvedValue({ uid: "student-1", role: "student" });
+    requireAuth.mockResolvedValue({ uid: "student-1", role: "student" });
 
     const req = mockRequest("http://localhost/api/attendance/heatmap?userId=other-user&month=2026-06");
-    const res = await GET(req);
-
-    expect(res.status).toBe(403);
+    await expect(GET(req)).rejects.toThrow("Forbidden: Cannot query attendance for another user");
   });
 
   test("allows admin to query any user", async () => {
-    authenticateRequest.mockResolvedValue({ uid: "admin-1", role: "admin" });
+    requireAuth.mockResolvedValue({ uid: "admin-1", role: "admin" });
+    const { mockGet } = createMockFirestore();
+    mockGet.mockResolvedValue(createMockDocs([]));
 
     const req = mockRequest("http://localhost/api/attendance/heatmap?userId=student-42&month=2026-06");
     const res = await GET(req);
-
     expect(res.status).toBe(200);
-    expect(mockCollection.find).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: "student-42" })
-    );
   });
 
   test("allows teacher to query any user", async () => {
-    authenticateRequest.mockResolvedValue({ uid: "teacher-1", role: "teacher" });
+    requireAuth.mockResolvedValue({ uid: "teacher-1", role: "teacher" });
+    const { mockGet } = createMockFirestore();
+    mockGet.mockResolvedValue(createMockDocs([]));
 
     const req = mockRequest("http://localhost/api/attendance/heatmap?userId=student-42&month=2026-06");
     const res = await GET(req);
-
     expect(res.status).toBe(200);
-    expect(mockCollection.find).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: "student-42" })
-    );
   });
 
   test("allows student to query own data with explicit userId", async () => {
-    authenticateRequest.mockResolvedValue({ uid: "student-1", role: "student" });
+    requireAuth.mockResolvedValue({ uid: "student-1", role: "student" });
+    const { mockGet } = createMockFirestore();
+    mockGet.mockResolvedValue(createMockDocs([]));
 
     const req = mockRequest("http://localhost/api/attendance/heatmap?userId=student-1&month=2026-06");
     const res = await GET(req);
-
     expect(res.status).toBe(200);
-    expect(mockCollection.find).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: "student-1" })
-    );
   });
 
   test("returns empty array when month is missing", async () => {
-    authenticateRequest.mockResolvedValue({ uid: "student-1", role: "student" });
+    requireAuth.mockResolvedValue({ uid: "student-1", role: "student" });
 
     const req = mockRequest("http://localhost/api/attendance/heatmap");
     const res = await GET(req);
-
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.attendance).toEqual([]);
+  });
+
+  test("correctly fetches attendance records from Firestore with date range filter", async () => {
+    requireAuth.mockResolvedValue({ uid: "user-123", role: "student" });
+
+    const mockDocs = [
+      {
+        id: "doc-1",
+        data: () => ({
+          userId: "user-123",
+          date: "2026-05-15",
+          status: "present",
+          subject: "Math",
+          timestamp: { toDate: () => new Date("2026-05-15T09:00:00Z") },
+        }),
+      },
+      {
+        id: "doc-2",
+        data: () => ({
+          userId: "user-123",
+          date: "2026-05-02",
+          status: "present",
+          subject: "Science",
+          timestamp: { toDate: () => new Date("2026-05-02T10:00:00Z") },
+        }),
+      },
+    ];
+
+    const { mockGet } = createMockFirestore();
+    mockGet.mockResolvedValue(createMockDocs(mockDocs));
+
+    const req = mockRequest("http://localhost/api/attendance/heatmap?month=2026-05");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.attendance).toHaveLength(2);
+
+    expect(body.attendance[0]).toEqual({
+      date: "2026-05-02",
+      status: "present",
+      subject: "Science",
+      markedAt: "2026-05-02T10:00:00.000Z",
+      _id: "doc-2",
+    });
+
+    expect(body.attendance[1]).toEqual({
+      date: "2026-05-15",
+      status: "present",
+      subject: "Math",
+      markedAt: "2026-05-15T09:00:00.000Z",
+      _id: "doc-1",
+    });
   });
 });

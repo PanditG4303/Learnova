@@ -1,25 +1,26 @@
 "use client";
-
-import React, { useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  TrendingUp, 
-  ArrowRight, 
-  Award, 
-  MessageSquare, 
-  ShieldCheck, 
-  Zap, 
-  Calendar, 
-  UserCheck, 
-  BarChart3, 
-  GraduationCap, 
-  BookOpen, 
+import { Navbar } from "@/components/Navbar";
+import CommentSection from "@/components/CommentSection";
+import {
+  TrendingUp,
+  Award,
+  Zap,
+  ShieldCheck,
+  GraduationCap,
+  Sparkles,
+  ArrowRight,
+  BookOpen,
   Users,
   ChevronDown,
-  HelpCircle
+  HelpCircle,
+  Calendar,
+  UserCheck,
+  BarChart3,
+  Brain,
 } from "lucide-react";
-import { Navbar } from "@/components/Navbar";
 
 // --- Mock Data & Constants ---
 const STATS_ITEMS = [
@@ -28,21 +29,27 @@ const STATS_ITEMS = [
     number: 99.8,
     suffix: "%",
     label: "Attendance Tracking Accuracy",
-    href: "/metrics/attendance"
+    href: "/metrics/attendance",
+    icon: ShieldCheck,
+    iconColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
   },
   {
     id: "ring-2",
     number: 45,
     suffix: "%",
     label: "Admin Workload Reduction",
-    href: "/metrics/efficiency"
+    href: "/metrics/efficiency",
+    icon: Zap,
+    iconColor: "text-purple-400 bg-purple-500/10 border-purple-500/20"
   },
   {
     id: "ring-1",
     number: 25,
     suffix: "K+",
     label: "Active Daily Campus Users",
-    href: null
+    href: null,
+    icon: Users,
+    iconColor: "text-blue-400 bg-blue-500/10 border-blue-500/20"
   }
 ];
 
@@ -67,7 +74,17 @@ const FEATURES = [
     description: "Identify struggling students early and gauge curriculum velocity with advanced data dashboards.",
     color: "text-emerald-500",
     bg: "bg-emerald-500/10"
-  }
+  },
+
+  {
+  icon: Brain,
+  title: "AI Study Planner",
+  description:
+    "Generate personalized daily study plans, weekly goals, revision schedules, and topic prioritization based on your goals and available study time.",
+  color: "text-pink-500",
+  bg: "bg-pink-500/10",
+  href: "/timetable"
+}
 ];
 
 const ROLE_DATA = {
@@ -152,8 +169,8 @@ function FAQAccordionItem({ question, answer, isOpen, onToggle }) {
         className="w-full flex justify-between items-center p-5 md:p-6 text-left font-semibold text-black dark:text-zinc-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors focus:outline-none"
       >
         <span className="text-sm md:text-base leading-relaxed">{question}</span>
-        <ChevronDown 
-          className={`w-5 h-5 text-purple-500 shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} 
+        <ChevronDown
+          className={`w-5 h-5 text-purple-500 shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
       <AnimatePresence initial={false}>
@@ -183,68 +200,6 @@ function AnimatedCounter({ to, suffix }) {
   );
 }
 
-function CommentSection() {
-  const [comments, setComments] = useState([
-    { id: 1, user: "Dr. Evelyn Vance", role: "Dean of Academics", body: "The recent curriculum planning updates allowed our computer science department to map compliance standards in half the time.", time: "2 hours ago" }
-  ]);
-  const [newComment, setNewComment] = useState("");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-    setComments([
-      ...comments,
-      {
-        id: Date.now(),
-        user: "Faculty Coordinator",
-        role: "Department Head",
-        body: newComment,
-        time: "Just now"
-      }
-    ]);
-    setNewComment("");
-  };
-
-  return (
-    <div className="w-full bg-white dark:bg-zinc-900/50 rounded-2xl border border-gray-200/60 dark:border-white/5 p-6 md:p-8 backdrop-blur-md">
-      <div className="flex items-center gap-3 mb-6">
-        <MessageSquare className="w-6 h-6 text-purple-500" />
-        <h3 className="text-xl font-bold text-black dark:text-white">Campus Notice Board & Logs</h3>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mb-8">
-        <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Log administrative feedback or department updates..."
-          rows={3}
-          className="w-full p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-black/30 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all text-black dark:text-white resize-none"
-        />
-        <div className="mt-3 flex justify-end">
-          <button type="submit" className="px-5 py-2 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition-colors">
-            Post Entry
-          </button>
-        </div>
-      </form>
-
-      <div className="space-y-4">
-        {comments.map((c) => (
-          <div key={c.id} className="p-4 rounded-xl bg-gray-50/50 dark:bg-white/[0.01] border border-gray-100 dark:border-white/[0.02]">
-            <div className="flex justify-between items-start gap-4">
-              <div>
-                <span className="text-sm font-semibold text-black dark:text-white">{c.user}</span>
-                <span className="text-xs text-muted-foreground ml-2">({c.role})</span>
-              </div>
-              <span className="text-[11px] text-zinc-400">{c.time}</span>
-            </div>
-            <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-2 leading-relaxed">{c.body}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // --- Main Page Component ---
 export default function Page() {
   const [hoveredRing, setHoveredRing] = useState(null);
@@ -255,7 +210,7 @@ export default function Page() {
     <>
       <Navbar />
       <div className="min-h-screen bg-background text-foreground selection:bg-purple-500/30">
-        
+
         {/* Premium Academic Performance Metrics */}
         <section
           id="stats"
@@ -263,7 +218,7 @@ export default function Page() {
         >
           <div className="max-w-7xl mx-auto relative">
             <div className="grid lg:grid-cols-12 gap-16 items-center">
-              
+
               {/* Left Column: Contextual Messaging */}
               <Reveal className="lg:col-span-5 space-y-6">
                 <SectionBadge
@@ -290,39 +245,39 @@ export default function Page() {
 
               {/* Right Column: High-Fidelity Orbital Interactive Diagrams */}
               <Reveal className="lg:col-span-7 flex flex-col md:flex-row items-center justify-center gap-12" delay={0.1}>
-                
+
                 {/* Concentric Interactive Rings Diagram Container */}
                 <div className="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center bg-black/5 dark:bg-white/[0.02] rounded-full border border-gray-200/50 dark:border-white/5 backdrop-blur-sm shadow-inner">
-                  
+
                   {/* Outer Orbital Layer - Ring 3 */}
-                  <div 
+                  <div
                     onMouseEnter={() => setHoveredRing(0)}
                     onMouseLeave={() => setHoveredRing(null)}
                     className={`absolute rounded-full border-2 border-dashed transition-all duration-700 cursor-pointer flex items-center justify-center
-                      ${hoveredRing === 0 
-                        ? "w-[95%] h-[95%] border-purple-500 bg-purple-500/[0.02] scale-105 rotate-45" 
+                      ${hoveredRing === 0
+                        ? "w-[95%] h-[95%] border-purple-500 bg-purple-500/[0.02] scale-105 rotate-45"
                         : "w-[90%] h-[90%] border-purple-500/20 dark:border-purple-500/10"
                       }`}
                   />
 
                   {/* Middle Orbital Layer - Ring 2 */}
-                  <div 
+                  <div
                     onMouseEnter={() => setHoveredRing(1)}
                     onMouseLeave={() => setHoveredRing(null)}
                     className={`absolute rounded-full border border-double transition-all duration-700 cursor-pointer flex items-center justify-center
-                      ${hoveredRing === 1 
-                        ? "w-[75%] h-[75%] border-blue-400 bg-blue-500/[0.02] -rotate-45" 
+                      ${hoveredRing === 1
+                        ? "w-[75%] h-[75%] border-blue-400 bg-blue-500/[0.02] -rotate-45"
                         : "w-[70%] h-[70%] border-blue-500/20 dark:border-blue-500/10"
                       }`}
                   />
 
                   {/* Inner Orbital Layer - Ring 1 */}
-                  <div 
+                  <div
                     onMouseEnter={() => setHoveredRing(2)}
                     onMouseLeave={() => setHoveredRing(null)}
                     className={`absolute rounded-full border transition-all duration-700 cursor-pointer flex items-center justify-center
-                      ${hoveredRing === 2 
-                        ? "w-[55%] h-[55%] border-emerald-400 bg-emerald-500/[0.02] scale-95" 
+                      ${hoveredRing === 2
+                        ? "w-[55%] h-[55%] border-emerald-400 bg-emerald-500/[0.02] scale-95"
                         : "w-[50%] h-[50%] border-emerald-500/20 dark:border-emerald-500/10"
                       }`}
                   />
@@ -340,17 +295,49 @@ export default function Page() {
                 <div className="flex-1 w-full space-y-4">
                   {STATS_ITEMS.map((stat, idx) => {
                     const isSelected = hoveredRing === idx;
+                    const IconComponent = stat.icon;
                     return (
                       <div
                         key={stat.id}
                         onMouseEnter={() => setHoveredRing(idx)}
                         onMouseLeave={() => setHoveredRing(null)}
                         className={`group block p-4 rounded-2xl border transition-all duration-500 cursor-pointer
-                          ${isSelected 
-                            ? "bg-purple-50/60 dark:bg-purple-900/10 border-purple-500/40 translate-x-2 shadow-sm" 
-                            : "bg-white/50 dark:bg-black/20 border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/10"
+                          ${isSelected
+                            ? "bg-purple-950/20 border-purple-500/40 translate-x-2 shadow-lg shadow-purple-500/5"
+                            : "bg-white/[0.02] dark:bg-black/20 border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
                           }`}
-                      />
+                      >
+                        {stat.href ? (
+                          <Link href={stat.href} className="focus:outline-none flex items-center gap-4">
+                            <div className={`p-2.5 rounded-xl border ${stat.iconColor} transition-transform duration-300 group-hover:scale-105`}>
+                              <IconComponent className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-2xl font-black text-black dark:text-white transition-colors duration-300 group-hover:text-purple-500 dark:group-hover:text-purple-400">
+                                <AnimatedCounter to={stat.number} suffix={stat.suffix} />
+                              </div>
+                              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-0.5 flex items-center gap-1 group-hover:text-black dark:group-hover:text-white transition-colors">
+                                {stat.label}
+                                <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-purple-400" />
+                              </p>
+                            </div>
+                          </Link>
+                        ) : (
+                          <div className="flex items-center gap-4">
+                            <div className={`p-2.5 rounded-xl border ${stat.iconColor} transition-transform duration-300 group-hover:scale-105`}>
+                              <IconComponent className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-2xl font-black text-black dark:text-white">
+                                <AnimatedCounter to={stat.number} suffix={stat.suffix} />
+                              </div>
+                              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-0.5">
+                                {stat.label}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -380,12 +367,13 @@ export default function Page() {
               </p>
             </Reveal>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               {FEATURES.map((feat, i) => {
                 const IconComp = feat.icon;
                 return (
                   <Reveal key={i} delay={i * 0.1}>
-                    <div className="h-full p-6 bg-white dark:bg-zinc-900/40 border border-gray-200/60 dark:border-white/5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1">
+  <Link href={feat.href || "#"} className="block h-full">
+    <div className="h-full p-6 bg-white dark:bg-zinc-900/40 border border-gray-200/60 dark:border-white/5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 cursor-pointer">
                       <div>
                         <div className={`w-12 h-12 ${feat.bg} rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
                           <IconComp className={`w-6 h-6 ${feat.color}`} />
@@ -394,6 +382,7 @@ export default function Page() {
                         <p className="text-sm text-muted-foreground leading-relaxed">{feat.description}</p>
                       </div>
                     </div>
+                  </Link>
                   </Reveal>
                 );
               })}
@@ -404,7 +393,7 @@ export default function Page() {
         {/* --- ROLE-BASED TAILORED WORKFLOWS --- */}
         <section id="roles" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-12 gap-12 items-center">
-            
+
             <Reveal className="lg:col-span-5 space-y-6">
               <SectionBadge
                 icon={GraduationCap}

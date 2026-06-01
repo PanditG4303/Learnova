@@ -1,12 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import ComplaintsTable from "@/components/ComplaintsTable";
 import ComplaintForm from "@/components/ComplaintForm";
+import { useRouter } from "next/navigation";
+import { useAuthContext } from "@/contexts/AuthContext";
+import CardListSkeleton from "@/components/ui/CardListSkeleton";
+import toast from "react-hot-toast";
+
+  
+
 
 export default function ComplaintsPage() {
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuthContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/auth");
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading) return null;
 
   const [complaints, setComplaints] = useState([
     {
@@ -44,6 +62,16 @@ export default function ComplaintsPage() {
     },
   ]);
 
+
+  // Simulate data loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleAddComplaint = (newComplaint) => {
     setComplaints((prev) => [
       {
@@ -56,7 +84,10 @@ export default function ComplaintsPage() {
     ]);
 
     setShowForm(false);
+    toast.success("Complaint submitted successfully!");
   };
+
+ 
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -64,10 +95,14 @@ export default function ComplaintsPage() {
 
       <div className="pt-24 px-4 md:px-8 lg:px-10 pb-10">
 
-        {showForm ? (
+        {loading ? (
+          <CardListSkeleton count={3} variant="table" />
+        ) : showForm ? (
           <ComplaintForm
             onClose={() => setShowForm(false)}
             onSubmitComplaint={handleAddComplaint}
+
+            
           />
         ) : (
           <ComplaintsTable
